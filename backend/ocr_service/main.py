@@ -17,12 +17,17 @@ from ocr.verify import verify_fields, overall_cer
 
 app = FastAPI(title="Local OCR Extract + Verify")
 
+# During development (Codespaces previews) it's common for the UI and API to
+# be served from different preview origins (different forwarded ports). To
+# avoid cross-origin errors in the browser while developing, allow origins
+# here. For production, restrict this to explicit origins.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-      "https://probable-waffle-g4596x4wp7j93r77-5500.app.github.dev"
-    ],
-    allow_credentials=True,
+    # Use a permissive policy in the dev container so the Codespaces preview
+    # (different forwarded ports) can talk to the API. We avoid allow_credentials
+    # when using a wildcard origin.
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
