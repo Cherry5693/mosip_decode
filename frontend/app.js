@@ -1,5 +1,5 @@
 // Set backend base URL. If frontend is served from same origin as backend, set to ''
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'https://probable-waffle-g4596x4wp7j93r77-8000.app.github.dev'; // or window.location.origin
 
 const extractForm = document.getElementById('extractForm');
 const results = document.getElementById('results');
@@ -18,21 +18,30 @@ extractForm.addEventListener('submit', async (e) => {
   lastFile = document.getElementById('file').files[0];
   lastDocType = form.get('docType');
   lastLang = form.get('language');
-  const res = await fetch(API_BASE + '/api/ocr/extract', { method: 'POST', body: form });
-  const data = await res.json();
-  results.style.display = 'block';
-  fieldsDiv.innerHTML = '';
-  (data.fields || []).forEach(f => {
-    const row = document.createElement('div');
-    row.className = 'field-row';
-    row.innerHTML = `
-      <label>${f.name}</label>
-      <input type="text" value="${(f.value||'')}" data-name="${f.name}"/>
-      <span class="conf">conf: ${(f.confidence||0).toFixed(2)}</span>
-    `;
-    fieldsDiv.appendChild(row);
-  });
-  qualityDiv.innerText = `Avg blur: ${data.quality?.avgBlur?.toFixed(1)} | Avg brightness: ${data.quality?.avgBrightness?.toFixed(2)}`;
+  try {
+    const res = await fetch(API_BASE + '/api/ocr/extract', { method: 'POST', body: form });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Server ${res.status}: ${text}`);
+    }
+    const data = await res.json();
+    results.style.display = 'block';
+    fieldsDiv.innerHTML = '';
+    (data.fields || []).forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'field-row';
+      row.innerHTML = `
+        <label>${f.name}</label>
+        <input type="text" value="${(f.value||'')}" data-name="${f.name}"/>
+        <span class="conf">conf: ${(f.confidence||0).toFixed(2)}</span>
+      `;
+      fieldsDiv.appendChild(row);
+    });
+    qualityDiv.innerText = `Avg blur: ${data.quality?.avgBlur?.toFixed(1)} | Avg brightness: ${data.quality?.avgBrightness?.toFixed(2)}`;
+  } catch (err) {
+    console.error('Extract failed', err);
+    alert('Extract failed: ' + err.message);
+  }
 });
 
 verifyForm.addEventListener('submit', async (e) => {

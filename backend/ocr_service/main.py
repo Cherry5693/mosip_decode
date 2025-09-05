@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Any
 from pathlib import Path
@@ -18,7 +19,12 @@ app = FastAPI(title="Local OCR Extract + Verify")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
+    allow_origins=[
+      "https://probable-waffle-g4596x4wp7j93r77-5500.app.github.dev"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 detector = Detector()
@@ -26,6 +32,20 @@ trocr_print = TrOCRRecognizer(model_id="microsoft/trocr-small-printed")
 trocr_hand = TrOCRRecognizer(model_id="microsoft/trocr-small-handwritten")
 tess = TessRecognizer()
 templates = load_templates(Path(__file__).parent / "models" / "templates")
+
+# Serve frontend static files from the repository's frontend directory so the
+# UI and API share the same origin (useful in Codespaces / previews).
+frontend_dir = Path(__file__).parent.parent / "frontend"
+if frontend_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
+
+
+@app.get("/")
+async def root_index():
+    index_file = frontend_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
+    return JSONResponse({"status": "running"})
 
 @app.post("/api/ocr/extract")
 async def extract_api(
