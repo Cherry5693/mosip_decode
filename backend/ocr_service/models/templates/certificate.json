@@ -1,0 +1,8 @@
+{
+  "allowPartial": true,
+  "fields": {
+    "certificate_no": { "anchors": ["Certificate No", "Cert No"], "regex": "([A-Z0-9-]{6,})" },
+    "issued_to": { "anchors": ["Issued To", "Awarded To"], "regex": null },
+    "issue_date": { "anchors": ["Date", "Issue Date"], "regex": "([0-9]{2}[-/][0-9]{2}[-/][0-9]{4})" }
+  }
+}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>OCR Extract + Verify (Local)</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <h1>OCR Extraction and Verification</h1>
+  <section>
+    <form id="extractForm">
+      <input type="file" id="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.tif" required />
+      <select name="docType">
+        <option value="id_card">ID Card</option>
+        <option value="certificate">Certificate</option>
+        <option value="generic">Generic</option>
+      </select>
+      <select name="language">
+        <option value="eng">English</option>
+        <option value="ar">Arabic</option>
+      </select>
+      <label><input type="checkbox" name="use_handwriting"> Handwriting</label>
+      <label><input type="checkbox" name="prefer_trocr" checked> Prefer TrOCR</label>
+      <button type="submit">Extract</button>
+    </form>
+  </section>
+
+  <section id="results" style="display:none;">
+    <h2>Extracted Fields</h2>
+    <form id="verifyForm">
+      <div id="fields"></div>
+      <input type="hidden" name="submittedFields" id="submittedFields"/>
+      <button type="submit">Verify</button>
+    </form>
+    <div id="quality"></div>
+    <pre id="verifyOut"></pre>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
