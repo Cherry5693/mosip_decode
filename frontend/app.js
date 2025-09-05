@@ -1,3 +1,6 @@
+// Set backend base URL. If frontend is served from same origin as backend, set to ''
+const API_BASE = 'http://localhost:8000';
+
 const extractForm = document.getElementById('extractForm');
 const results = document.getElementById('results');
 const fieldsDiv = document.getElementById('fields');
@@ -15,7 +18,7 @@ extractForm.addEventListener('submit', async (e) => {
   lastFile = document.getElementById('file').files[0];
   lastDocType = form.get('docType');
   lastLang = form.get('language');
-  const res = await fetch('/api/ocr/extract', { method: 'POST', body: form });
+  const res = await fetch(API_BASE + '/api/ocr/extract', { method: 'POST', body: form });
   const data = await res.json();
   results.style.display = 'block';
   fieldsDiv.innerHTML = '';
@@ -43,7 +46,7 @@ verifyForm.addEventListener('submit', async (e) => {
   form.append('docType', lastDocType);
   form.append('language', lastLang);
   form.append('prefer_trocr', 'true');
-  const res = await fetch('/api/ocr/verify', { method: 'POST', body: form });
+  const res = await fetch(API_BASE + '/api/ocr/verify', { method: 'POST', body: form });
   const data = await res.json();
   verifyOut.textContent = JSON.stringify(data, null, 2);
 });

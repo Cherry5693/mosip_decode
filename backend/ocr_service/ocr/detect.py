@@ -1,19 +1,24 @@
-from paddleocr import PaddleOCR
+from .tesseract_recognizer import TessRecognizer
+
 
 class Detector:
+    """Lightweight Detector that uses Tesseract as a fallback.
+
+    This avoids the heavy PaddleOCR dependency and works in environments
+    without Paddle installed. It presents the same .recognize(img, lang)
+    interface and returns token dicts with text, confidence and bbox.
+    """
     def __init__(self):
-        self.detector = PaddleOCR(det=True, rec=False, cls=True, use_angle_cls=True, use_gpu=False)
+        self.tess = TessRecognizer()
 
     def recognize(self, img, lang="en"):
-        ocr = PaddleOCR(det=True, rec=True, cls=True, use_angle_cls=True, lang="en" if lang=="en" else "ar", use_gpu=False)
-        result = ocr.ocr(img, cls=True)
-        tokens = []
-        for res in result:
-            for line in res:
-                ((x1,y1),(x2,y2),(x3,y3),(x4,y4)), (text, conf) = line
-                x_min = int(min(x1, x2, x3, x4)); x_max = int(max(x1, x2, x3, x4))
-                y_min = int(min(y1, y2, y3, y4)); y_max = int(max(y1, y2, y3, y4))
-                tokens.append({"text": text, "confidence": float(conf), "bbox": [x_min, y_min, x_max, y_max]})
+        # Map language code to tesseract code
+        tess_lang = "eng" if lang == "en" else lang
+        try:
+            tokens = self.tess.recognize(img, lang=tess_lang)
+        except Exception:
+            # On any tesseract error return empty list to avoid crashing app
+            tokens = []
         if lang != "en":
             tokens = self._rtl_line_reorder(tokens)
         return tokens

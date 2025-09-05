@@ -1,1 +1,1 @@
-# OCR Service Package
+# ocr_service package

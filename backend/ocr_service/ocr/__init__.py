@@ -1,1 +1,1 @@
-# OCR Module Package
+# OCR Service Package
