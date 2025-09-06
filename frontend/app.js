@@ -1,61 +1,92 @@
-// Set backend base URL. If frontend is served from same origin as backend, set to ''
-const API_BASE = 'https://probable-waffle-g4596x4wp7j93r77-8000.app.github.dev'; // or window.location.origin
+// Use same-origin by default so the app works when served from the backend
+// (recommended in Codespaces: open backend preview on port 8000).
+const BASE_URL = window.location.origin;
 
-const extractForm = document.getElementById('extractForm');
-const results = document.getElementById('results');
-const fieldsDiv = document.getElementById('fields');
-const submittedFieldsInput = document.getElementById('submittedFields');
-const verifyForm = document.getElementById('verifyForm');
-const qualityDiv = document.getElementById('quality');
-const verifyOut = document.getElementById('verifyOut');
-
-let lastFile = null;
-let lastDocType = 'generic';
-let lastLang = 'eng';
-extractForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = new FormData(extractForm);
-  lastFile = document.getElementById('file').files[0];
-  lastDocType = form.get('docType');
-  lastLang = form.get('language');
-  try {
-    const res = await fetch(API_BASE + '/api/ocr/extract', { method: 'POST', body: form });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Server ${res.status}: ${text}`);
+// Handle OCR Extract
+const extractForm = document.getElementById("extractForm");
+if (extractForm) {
+  extractForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById("file");
+    const file = fileInput?.files?.[0];
+    if (!file) {
+      alert("Please upload a file first!");
+      return;
     }
-    const data = await res.json();
-    results.style.display = 'block';
-    fieldsDiv.innerHTML = '';
-    (data.fields || []).forEach(f => {
-      const row = document.createElement('div');
-      row.className = 'field-row';
-      row.innerHTML = `
-        <label>${f.name}</label>
-        <input type="text" value="${(f.value||'')}" data-name="${f.name}"/>
-        <span class="conf">conf: ${(f.confidence||0).toFixed(2)}</span>
-      `;
-      fieldsDiv.appendChild(row);
-    });
-    qualityDiv.innerText = `Avg blur: ${data.quality?.avgBlur?.toFixed(1)} | Avg brightness: ${data.quality?.avgBrightness?.toFixed(2)}`;
-  } catch (err) {
-    console.error('Extract failed', err);
-    alert('Extract failed: ' + err.message);
-  }
-});
 
-verifyForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const inputs = [...fieldsDiv.querySelectorAll('input[type="text"]')];
-  const payload = inputs.map(inp => ({ name: inp.dataset.name, value: inp.value }));
-  submittedFieldsInput.value = JSON.stringify(payload);
-  const form = new FormData();
-  form.append('file', lastFile);
-  form.append('submittedFields', submittedFieldsInput.value);
-  form.append('docType', lastDocType);
-  form.append('language', lastLang);
-  form.append('prefer_trocr', 'true');
-  const res = await fetch(API_BASE + '/api/ocr/verify', { method: 'POST', body: form });
-  const data = await res.json();
-  verifyOut.textContent = JSON.stringify(data, null, 2);
-});
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("docType", extractForm.elements["docType"]?.value || "generic");
+    formData.append("language", extractForm.elements["language"]?.value || "eng");
+    formData.append("use_handwriting", extractForm.elements["use_handwriting"]?.checked ? "true" : "false");
+    formData.append("prefer_trocr", extractForm.elements["prefer_trocr"]?.checked ? "true" : "false");
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/ocr/extract`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Extracted data:", data);
+
+      // show results in page
+      const out = document.getElementById("verifyOut") || document.getElementById("output");
+      if (out) out.innerText = JSON.stringify(data, null, 2);
+      document.getElementById("results").style.display = "block";
+    } catch (err) {
+      console.error("Extract failed", err);
+      const out = document.getElementById("verifyOut") || document.getElementById("output");
+      if (out) out.innerText = "Error: " + err.message;
+      else alert("Extract failed: " + err.message);
+    }
+  });
+}
+
+// Basic verify handler — only active if the verify form provides a file input
+const verifyForm = document.getElementById("verifyForm");
+if (verifyForm) {
+  verifyForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submittedFields = document.getElementById("submittedFields")?.value;
+    const verifyFileInput = document.getElementById("verifyFile");
+    const file = verifyFileInput?.files?.[0];
+
+    if (!file) {
+      alert("Please provide a file for verification (use the main upload first).");
+      return;
+    }
+    if (!submittedFields) {
+      alert("Provide submitted fields JSON in the hidden input before verifying.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("submittedFields", submittedFields);
+    formData.append("docType", verifyForm.elements["docType"]?.value || "generic");
+    formData.append("language", verifyForm.elements["language"]?.value || "eng");
+    formData.append("prefer_trocr", verifyForm.elements["prefer_trocr"]?.checked ? "true" : "false");
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/ocr/verify`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      const data = await response.json();
+      const out = document.getElementById("verifyOut") || document.getElementById("verifyOutput");
+      if (out) out.innerText = JSON.stringify(data, null, 2);
+    } catch (err) {
+      console.error("Verify failed", err);
+      const out = document.getElementById("verifyOut") || document.getElementById("verifyOutput");
+      if (out) out.innerText = "Error: " + err.message;
+      else alert("Verify failed: " + err.message);
+    }
+  });
+}

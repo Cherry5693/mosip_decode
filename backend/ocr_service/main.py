@@ -17,17 +17,11 @@ from ocr.verify import verify_fields, overall_cer
 
 app = FastAPI(title="Local OCR Extract + Verify")
 
-# During development (Codespaces previews) it's common for the UI and API to
-# be served from different preview origins (different forwarded ports). To
-# avoid cross-origin errors in the browser while developing, allow origins
-# here. For production, restrict this to explicit origins.
+# ✅ Fix CORS for frontend-backend communication
 app.add_middleware(
     CORSMiddleware,
-    # Use a permissive policy in the dev container so the Codespaces preview
-    # (different forwarded ports) can talk to the API. We avoid allow_credentials
-    # when using a wildcard origin.
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=["*"],   # allow all during development
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -38,8 +32,7 @@ trocr_hand = TrOCRRecognizer(model_id="microsoft/trocr-small-handwritten")
 tess = TessRecognizer()
 templates = load_templates(Path(__file__).parent / "models" / "templates")
 
-# Serve frontend static files from the repository's frontend directory so the
-# UI and API share the same origin (useful in Codespaces / previews).
+# Serve frontend files (optional if you open index.html directly)
 frontend_dir = Path(__file__).parent.parent / "frontend"
 if frontend_dir.exists():
     app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
@@ -51,6 +44,7 @@ async def root_index():
     if index_file.exists():
         return FileResponse(str(index_file))
     return JSONResponse({"status": "running"})
+
 
 @app.post("/api/ocr/extract")
 async def extract_api(
@@ -106,6 +100,7 @@ async def extract_api(
             "pageSize": all_page_w_h,
         }
         return JSONResponse(resp)
+
 
 @app.post("/api/ocr/verify")
 async def verify_api(
